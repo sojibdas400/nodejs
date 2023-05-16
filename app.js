@@ -1,9 +1,9 @@
 const http = require("http");
+const fs = require("fs");
 
 const server = http.createServer((req, res) => {
   let url = req.url;
   let method = req.method;
-  console.log(url, method);
   if (url === "/") {
     res.write(`<html>
     <head>
@@ -22,9 +22,21 @@ const server = http.createServer((req, res) => {
   }
 
   if (url === "/message" && method === "POST") {
-    res.statusCode = 302;
-    res.setHeader("Location", "/");
-    return res.end();
+    const body = [];
+    req.on("data", (chunk) => {
+      body.push(chunk);
+    });
+
+    return req.on("end", () => {
+      const parsedBody = Buffer.concat(body).toString();
+      const message = parsedBody.split("=")[1];
+      fs.writeFile("message", message, () => {
+        console.log("File write ends");
+        res.statusCode = 302;
+        res.setHeader("Location", "/");
+        return res.end();
+      });
+    });
   }
 
   res.setHeader("Content-Type", "text/html");
@@ -36,7 +48,7 @@ const server = http.createServer((req, res) => {
         <h2>Hello from my demo server!!!!</h2>
     </body>
     </html>`);
-    return res.end()
+  return res.end();
 });
 
 server.listen(5000);
